@@ -146,10 +146,10 @@ Rf.grid <- data.frame(.mtry = seq(1, 3, by = 1))
 
 set.seed(1455)
 formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
-Rf.fit <- train(formula, data = Blood.Train, method = "rf", metric = "logLoss", tuneGrid = Rf.grid, trControl = Rf.ctrl)
+Rf.fit.1 <- train(formula, data = Blood.Train, method = "rf", metric = "logLoss", tuneGrid = Rf.grid, trControl = Rf.ctrl)
 
-summary(Rf.fit)
-print(Rf.fit)
+summary(Rf.fit.1)
+print(Rf.fit.1)
 # CV Logloss = 1.237144 (?)
 
 varImp(Rf.fit)
@@ -162,3 +162,54 @@ Rf.fit.2 <- train(formula.2, data = Blood.Train, method = "rf", metric = "logLos
 summary(Rf.fit.2)
 print(Rf.fit.2)
 # CV Logloss = 1.484172 (?)
+
+Rf.preds.1 <- predict(Rf.fit.1, newdata = Blood.Test, type = "prob")
+Submission.Rf1 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Rf.preds.1[, 2])
+colnames(Submission.Rf1) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Rf1, "Submission5.csv", row.names = FALSE)
+# Leaderboard Logloss = 1.7678 (Very bad !)
+
+
+## Model 3 : Penalized logistic regression
+
+
+Plr.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+Plr.grid <- expand.grid(lambda = c(0.5), cp = c("bic", "aic"))
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
+Plr.fit.1 <- train(formula, data = Blood.Train, method = "plr", metric = "logLoss", tuneGrid = Plr.grid, trControl = Plr.ctrl)
+
+summary(Plr.fit.1)
+print(Plr.fit.1)
+# CV Logloss = 0.4882591
+
+Plr.preds.1 <- predict(Plr.fit.1, newdata = Blood.Test, type = "prob")
+Submission.Plr1 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Plr.preds.1[, 2])
+colnames(Submission.Plr1) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Plr1, "Submission6.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4457
+
+Plr.grid.2 <- expand.grid(lambda = c(0.5), cp = c("bic", "aic"))
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Plr.fit.2 <- train(formula.2, data = Blood.Train, method = "plr", metric = "logLoss", tuneGrid = Plr.grid.2, trControl = Plr.ctrl)
+
+summary(Plr.fit.2)
+print(Plr.fit.2)
+# CV Logloss = 0.483337
+
+Plr.preds.2 <- predict(Plr.fit.2, newdata = Blood.Test, type = "prob")
+Submission.Plr2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Plr.preds.2[, 2])
+colnames(Submission.Plr2) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Plr2, "Submission7.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4384 (Best)
+
+
