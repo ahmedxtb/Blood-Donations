@@ -213,3 +213,114 @@ write.csv(Submission.Plr2, "Submission7.csv", row.names = FALSE)
 # Leaderboard Logloss = 0.4384 (Best)
 
 
+## Model 4 : Conditional inference forests
+
+
+Cif.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+Cif.grid <- expand.grid(mtry = seq(2, 3, 1))
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
+Cif.fit <- train(formula, data = Blood.Train, method = "cforest", metric = "logLoss", preProc = c("center", "scale"), controls = cforest_unbiased(ntree = 500), trControl = Cif.ctrl, tuneGrid = Cif.grid, maximize = FALSE)
+
+summary(Cif.fit)
+print(Cif.fit)
+# CV Logloss = 0.5001579
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Cif.fit.2 <- train(formula.2, data = Blood.Train, method = "cforest", metric = "logLoss", preProc = c("center", "scale"), controls = cforest_unbiased(ntree = 500), trControl = Cif.ctrl, tuneGrid = Cif.grid, maximize = FALSE)
+
+summary(Cif.fit.2)
+print(Cif.fit.2)
+# CV Logloss = 0.5000875
+
+Cif.preds.2 <- predict(Cif.fit.2, newdata = Blood.Test, type = "prob")
+Submission.Cif2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Cif.preds.2[, 2])
+colnames(Submission.Cif2) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Cif2, "Submission8.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4568
+
+
+## Model 4 : LDA
+
+
+Lda.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
+Lda.fit <- train(formula, data = Blood.Train, method = "lda", metric = "logLoss", trControl = Lda.ctrl, maximize = FALSE)
+
+summary(Lda.fit)
+print(Lda.fit)
+# CV Logloss = 0.4906083
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Lda.fit.2 <- train(formula.2, data = Blood.Train, method = "lda", metric = "logLoss", trControl = Lda.ctrl, maximize = FALSE)
+
+summary(Lda.fit.2)
+print(Lda.fit.2)
+# CV Logloss = 0.4858648
+
+Lda.preds.2 <- predict(Lda.fit.2, newdata = Blood.Test, type = "prob")
+Submission.Lda2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Lda.preds.2[, 2])
+colnames(Submission.Lda2) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Lda2, "Submission9.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4525
+
+
+## Model 5 : GBM
+
+
+Boost.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+Boost.grid <- expand.grid(interaction.depth = c(2, 4), n.trees = (20:60) * 50, shrinkage = c(0.001), n.minobsinnode = 10)
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations
+Boost.fit <- train(formula, data = Blood.Train, method = "gbm", metric = "logLoss", trControl = Boost.ctrl, tuneGrid = Boost.grid, maximize = FALSE, verbose = FALSE)
+
+summary(Boost.fit)
+print(Boost.fit)
+# CV Logloss = 0.4779473
+
+Boost.preds <- predict(Boost.fit, newdata = Blood.Test, type = "prob")
+Submission.Boost <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Boost.preds[, 2])
+colnames(Submission.Boost) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Boost, "Submission10.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4561
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Boost.fit.2 <- train(formula.2, data = Blood.Train, method = "gbm", metric = "logLoss", trControl = Boost.ctrl, tuneGrid = Boost.grid, maximize = FALSE, verbose = FALSE)
+
+summary(Boost.fit.2)
+print(Boost.fit.2)
+# CV Logloss = 0.4778955
+
+Boost.preds.2 <- predict(Boost.fit.2, newdata = Blood.Test, type = "prob")
+Submission.Boost2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Boost.preds.2[, 2])
+colnames(Submission.Boost2) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Boost2, "Submission11.csv", row.names = FALSE)
+# Leaderboard Logloss = 
+
+
+## Model 6 : QDA
+
