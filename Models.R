@@ -3,6 +3,8 @@
 
 library(caret)
 library(ggplot2)
+library(caretEnsemble)
+
 
 
 ## Learning curve
@@ -130,6 +132,14 @@ Submission.Logit6 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = 
 colnames(Submission.Logit6) <- c("", "Made Donation in March 2007")
 write.csv(Submission.Logit6, "Submission4.csv", row.names = FALSE)
 # Leaderboard Logloss = 0.4411
+
+set.seed(1455)
+formula.7 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Logit.fit.7 <- train(formula.7, data = Blood.Train, method = "glm", metric = "logLoss", family = "binomial", preProc = c("center", "scale"), trControl = Logit.ctrl)
+
+summary(Logit.fit.7)
+print(Logit.fit.7)
+# CV Logloss = 0.4833443
 
 
 ## Model 2 : Random forests
@@ -319,8 +329,118 @@ Boost.preds.2 <- predict(Boost.fit.2, newdata = Blood.Test, type = "prob")
 Submission.Boost2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Boost.preds.2[, 2])
 colnames(Submission.Boost2) <- c("", "Made Donation in March 2007")
 write.csv(Submission.Boost2, "Submission11.csv", row.names = FALSE)
-# Leaderboard Logloss = 
+# Leaderboard Logloss = 0.4558
 
 
 ## Model 6 : QDA
 
+
+Qda.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
+Qda.fit <- train(formula, data = Blood.Train, method = "qda", metric = "logLoss", trControl = Qda.ctrl, maximize = FALSE)
+
+summary(Qda.fit)
+print(Qda.fit)
+# CV Logloss = 0.6309947
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Qda.fit.2 <- train(formula.2, data = Blood.Train, method = "qda", metric = "logLoss", trControl = Qda.ctrl, maximize = FALSE)
+
+summary(Qda.fit.2)
+print(Qda.fit.2)
+# CV Logloss = 0.6241451
+
+
+## Model 7 : SVM
+
+
+Svm.ctrl <- trainControl(
+  method = "repeatedcv",
+  repeats = 3,
+  classProbs = TRUE,
+  summaryFunction = mnLogLoss,
+  allowParallel = TRUE)
+
+Svm.grid <- expand.grid(C = c(0.0001, 0.001, 0.01, 0.1, 1.5, 10, 100))
+
+set.seed(1455)
+formula <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + Months.since.First.Donation
+Svm.fit <- train(formula, data = Blood.Train, method = "svmLinear", metric = "logLoss", trControl = Svm.ctrl, tuneGrid = Svm.grid, maximize = FALSE)
+
+summary(Svm.fit)
+print(Svm.fit)
+# CV Logloss = 0.5218798
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Svm.fit.2 <- train(formula.2, data = Blood.Train, method = "svmLinear", metric = "logLoss", trControl = Svm.ctrl, tuneGrid = Svm.grid, maximize = FALSE, verbose = FALSE)
+
+summary(Svm.fit.2)
+print(Svm.fit.2)
+# CV Logloss = 0.4987450
+
+Svm.preds.2 <- predict(Svm.fit.2, newdata = Blood.Test, type = "prob")
+Submission.Svm2 <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Svm.preds.2[, 2])
+colnames(Submission.Svm2) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Svm2, "Submission12.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4682
+
+Svm.grid.2 <- expand.grid(degree = c(2, 3, 4), scale = c(0.001, 0.01, 0.1), C = c(0.0001, 0.001, 0.01, 0.1, 1.5, 10, 100))
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Svm.fit.3 <- train(formula.2, data = Blood.Train, method = "svmPoly", metric = "logLoss", trControl = Svm.ctrl, tuneGrid = Svm.grid.2, maximize = FALSE, verbose = FALSE)
+
+summary(Svm.fit.3)
+print(Svm.fit.3)
+# CV Logloss = 0.5137325
+
+Svm.grid.3 <- expand.grid(sigma = c(0.5, 1, 2, 3, 4), C = c(0.0001, 0.001, 0.01, 0.1, 1.5, 10, 100))
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+Svm.fit.4 <- train(formula.2, data = Blood.Train, method = "svmRadial", metric = "logLoss", trControl = Svm.ctrl, tuneGrid = Svm.grid.3, maximize = FALSE, verbose = FALSE)
+
+summary(Svm.fit.4)
+print(Svm.fit.4)
+# CV Logloss = 0.4904827
+
+
+## Model 8 : Averaging
+
+
+Avg.ctrl <- trainControl(method = "repeatedcv",
+                         repeats = 3,
+                         index = createResample(Blood.Train$Made.Donation.in.March.2007, 25),
+                         summaryFunction = mnLogLoss,
+                         savePredictions = TRUE,
+                         classProbs = TRUE)
+
+#levels(Train$Survived) <- c("No", "Yes")
+
+set.seed(1455)
+formula.2 <- Made.Donation.in.March.2007 ~ Months.since.Last.Donation + Number.of.Donations + I(Months.since.First.Donation^2)
+models.list1 <- caretList(formula.2, data = Blood.Train, metric = "logLoss", trControl = Avg.ctrl, tuneList = list(
+  logit = caretModelSpec(method = "glm", family = "binomial"),
+  gbm = caretModelSpec(method = "gbm", tuneGrid = expand.grid(interaction.depth = c(2, 4), n.trees = (20:60) * 50, shrinkage = c(0.001), n.minobsinnode = 10), verbose = FALSE)
+  )
+)
+
+modelCor(resamples(models.list1))
+
+Avg.fit <- caretEnsemble(models.list1)
+# CV Logloss = 0.483158
+
+Avg.preds <- predict(Avg.fit, newdata = Blood.Test)
+Submission.Avg <- data.frame(X = Blood.Test$X, Made.Donation.in.March.2007 = Avg.preds)
+colnames(Submission.Avg) <- c("", "Made Donation in March 2007")
+write.csv(Submission.Avg, "Submission13.csv", row.names = FALSE)
+# Leaderboard Logloss = 0.4406
